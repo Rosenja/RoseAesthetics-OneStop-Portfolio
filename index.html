@@ -563,7 +563,7 @@ document.querySelectorAll('.frame').forEach(frame => {
     const tt = (frame.dataset.tiktok || '').match(/video\/(\d+)/);
     const f = document.createElement('iframe');
     f.src = ig ? `https://www.instagram.com/p/${ig[1]}/embed`
-               : `https://www.tiktok.com/embed/v2/${tt ? tt[1] : ''}`;
+               : `https://www.tiktok.com/player/v1/${tt ? tt[1] : ''}?music_info=0&description=0&rel=0`;
     f.allow = 'autoplay; encrypted-media; fullscreen; picture-in-picture';
     f.title = 'Portfolio video';
     f.loading = 'lazy';
@@ -579,10 +579,18 @@ document.querySelectorAll('.frame').forEach(frame => {
       ? (isPost
           ? { width: 326, x: 0,     y: 63, w: 326,   h: 408 }   // Instagram photo or carousel post
           : { width: 326, x: 48.25, y: 63, w: 229.5, h: 408 })  // Instagram Reel
-      : { width: 325, x: 0, y: 0, w: 325, h: 578 };             // TikTok
+      : null;                                                   // TikTok fills its own player
     const fit = () => {
       const W = frame.offsetWidth, H = frame.offsetHeight;
       if (!W) return;   // frame hidden, nothing to fit
+      if (!spec) {
+        // TikTok's player is just the video, so size it like a vertical
+        // video that covers the frame and center it.
+        const vw = Math.max(W, H * 9 / 16), vh = vw * 16 / 9;
+        Object.assign(f.style, { width: vw + 'px', height: vh + 'px',
+          transform: `translate(${(W - vw) / 2}px, ${(H - vh) / 2}px)`, transformOrigin: '0 0' });
+        return;
+      }
       const ZOOM = 1.25;   // extra zoom so no edges show (1 = none)
       const NUDGE = 0.12;  // move the video right by this share of the frame width (0 = centered)
       const z = Math.max(W / spec.w, H / spec.h) * ZOOM;
