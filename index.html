@@ -235,8 +235,14 @@ footer a:hover{color:var(--rosewood)}
   .nav .hide-sm{display:none}
   .section{padding:84px 0}
   .fan{height:330px}
-  .fan .reel{width:180px}
-  .grid{grid-template-columns:1fr 1fr;gap:28px 14px}
+  .fan .reel{width:min(300px,78vw)}
+  .fan .r1,.fan .r3{display:none}
+  .fan{height:min(420px,108vw)}
+  /* Content menu becomes a swipeable row of big cards, like scrolling Reels */
+  .grid{display:flex;gap:16px;overflow-x:auto;scroll-snap-type:x mandatory;margin:0 -28px;padding:4px 28px 12px;scrollbar-width:none}
+  .grid::-webkit-scrollbar{display:none}
+  .card{flex:0 0 80%;scroll-snap-align:center}
+  .hint::after{content:" Swipe for more.";}
   .card h3{font-size:21px}
   .skill-list{grid-template-columns:1fr}
   .script{transform:none;padding:28px 22px}
@@ -244,6 +250,11 @@ footer a:hover{color:var(--rosewood)}
   .facts{grid-template-columns:1fr 1fr}
   .packages,.quote{border-radius:30px;margin:0 8px}
   .tier{padding:30px 24px}
+}
+/* Touch screens: no hover lift, which can get stuck after a tap */
+@media (hover:none){
+  .card:hover .thumb,.portrait:hover{transform:none;box-shadow:none}
+  .pointer{display:none}   /* a mouse arrow makes no sense on a phone */
 }
 @media (prefers-reduced-motion:reduce){
   *{transition:none !important;animation:none !important;scroll-behavior:auto !important}
@@ -319,7 +330,7 @@ footer a:hover{color:var(--rosewood)}
       <button type="button" data-filter="people" aria-pressed="false">Providers</button>
       <button type="button" data-filter="results" aria-pressed="false">Before and after</button>
       <button type="button" data-filter="creator" aria-pressed="false">Creator-led</button>
-      <span class="hint">Tap a style, then tap any video to play</span>
+      <span class="hint">Tap a style, then tap any video to play.</span>
       <span class="pointer" aria-hidden="true"><span class="ring"></span><svg width="22" height="22" viewBox="0 0 24 24"><path d="M4 2l15 11.5-6.6.9 3.9 7.6-2.9 1.4-3.9-7.7L4 20z" fill="#2B211E" stroke="#F7F3EF" stroke-width="1.5" stroke-linejoin="round"></path></svg></span>
     </div>
 
@@ -555,6 +566,7 @@ document.querySelectorAll('.frame').forEach(frame => {
                : `https://www.tiktok.com/embed/v2/${tt ? tt[1] : ''}`;
     f.allow = 'autoplay; encrypted-media; fullscreen; picture-in-picture';
     f.title = 'Portfolio video';
+    f.loading = 'lazy';
     f.setAttribute('scrolling', 'no');
     frame.classList.add('is-social');
     frame.appendChild(f);
@@ -570,6 +582,7 @@ document.querySelectorAll('.frame').forEach(frame => {
       : { width: 325, x: 0, y: 0, w: 325, h: 578 };             // TikTok
     const fit = () => {
       const W = frame.offsetWidth, H = frame.offsetHeight;
+      if (!W) return;   // frame hidden, nothing to fit
       const ZOOM = 1.25;   // extra zoom so no edges show (1 = none)
       const NUDGE = 0.12;  // move the video right by this share of the frame width (0 = centered)
       const z = Math.max(W / spec.w, H / spec.h) * ZOOM;
@@ -581,7 +594,7 @@ document.querySelectorAll('.frame').forEach(frame => {
       });
     };
     fit();
-    window.addEventListener('resize', fit);
+    new ResizeObserver(fit).observe(frame);
   } else if (vimeo) {
     // Accepts 123456789, 123456789/abc123 (unlisted) or a full vimeo.com link
     const m = vimeo.match(/(\d+)(?:\/([a-z0-9]+))?/i) || [];
@@ -589,17 +602,19 @@ document.querySelectorAll('.frame').forEach(frame => {
     f.src = `https://player.vimeo.com/video/${m[1]}?${m[2] ? 'h=' + m[2] + '&' : ''}title=0&byline=0&portrait=0${frame.hasAttribute('data-autoplay') ? '&autoplay=1&muted=1&loop=1&controls=0&badge=0&autopause=0' : ''}`;
     f.allow = 'autoplay; fullscreen; picture-in-picture';
     f.title = 'Portfolio video';
+    f.loading = 'lazy';
     frame.appendChild(f);
     frame.querySelector('.ph')?.remove();
     // Vertical (9:16) videos: make the player tall enough to cover the frame
     const fitVimeo = () => {
       const W = frame.offsetWidth, H = frame.offsetHeight;
+      if (!W) return;   // frame hidden, nothing to fit
       const vw = Math.max(W, H * 9 / 16), vh = vw * 16 / 9;
       Object.assign(f.style, { width: vw + 'px', height: vh + 'px', left: (W - vw) / 2 + 'px', top: (H - vh) / 2 + 'px', inset: 'auto' });
       f.style.left = (W - vw) / 2 + 'px'; f.style.top = (H - vh) / 2 + 'px';
     };
     fitVimeo();
-    window.addEventListener('resize', fitVimeo);
+    new ResizeObserver(fitVimeo).observe(frame);
   }
 });
 
